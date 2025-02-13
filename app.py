@@ -16,11 +16,14 @@ me.connect(db="projectban",host=MONGO_URI)
 # Inicializar FastAPI
 app = FastAPI()
 
-try:
+@app.get("/")
+def read_root():
     me.connect(db="projectban",host=MONGO_URI)
-    print("✅ Conectado ao MongoDB com sucesso!")
-except Exception as e:
-    print(f"❌ Erro ao conectar no MongoDB: {e}")
+    try:
+        me.connect(db="projectban",host=MONGO_URI)
+        return {"message": "✅ Conectado ao MongoDB com sucesso!"} 
+    except Exception as e:
+        return {"message": f"❌ Erro ao conectar no MongoDB: {e}"} 
 
 @app.get("/init")
 def setup():
