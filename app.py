@@ -1,48 +1,126 @@
+# Models
+from models.user import User
+
+# Imports
 import os
 import mongoengine as me
-from fastapi import FastAPI,HTTPException
+from fastapi import FastAPI
 from dotenv import load_dotenv
-from models.project import Project  # Importando o modelo Project
-from models.user import User  # Importando o modelo User
-from models.task import Task  # Importando o modelo Task
+import hashlib
+import bcrypt
+from pydantic import BaseModel
+import pyotp
+import jwt
+import os
 
-# Carregar variáveis de ambiente
+# Env
 load_dotenv()
-
-# Conectar ao MongoDB Atlas
 MONGO_URI = os.getenv("MONGO_URI")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+# Connect to mongoDB
 me.connect(db="codeBan",host=MONGO_URI)
 
 # Inicializar FastAPI
-app = FastAPI()
+app = FastAPI(
+    title="CodeBan",
+    version="0.4"
+)
 
-@app.get("/")
-def read_root():
-    me.connect(db="codeBan",host=MONGO_URI)
+# Types
+class UserModel(BaseModel):
+    name: str
+    email: str
+    senha: str
+
+class TOTPValidation(BaseModel):
+    email: str
+    totp_code: str
+    
+class LoginResponse(BaseModel):
+    success: bool
+    message: str
+    token: str = None
+
+# Resposta para o registro
+class RegisterResponse(BaseModel):
+    success: bool
+    message: str
+    qr_code_url: str = None
+
+# Resposta para validação de TOTP
+class TOTPValidationResponse(BaseModel):
+    success: bool
+    message: str
+    token: str = None
+    
+def hash_senha(senha: str):
+    return hashlib.sha256(senha.encode()).hexdigest()
+
+@app.post("/register",response_model=RegisterResponse)
+def register(user_data: UserModel):
     try:
-        me.connect(db="codeBan",host=MONGO_URI)
-        return {"message": "✅ Conectado ao MongoDB com sucesso!"} 
+        # Verificar se o e-mail já está cadastrado
+        if User.objects(email=user_data.email).first():
+            return {"success":False, "message": "E-mail já cadastrado"}
+
+        # Hash da senha
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(user_data.senha.encode("utf-8"), salt)
+
+        # Gerar segredo TOTP
+        totp_secret = pyotp.random_base32()
+
+        # Criar usuário no MongoDB
+        usuario = User(
+            name=user_data.name,
+            email=user_data.email,
+            pass_hash=hashed_password.decode("utf-8"),
+            totp_secret=totp_secret
+        )
+        usuario.save()
+
+        # Criar URI do OTP
+        otp_uri = pyotp.totp.TOTP(totp_secret).provisioning_uri(
+            name=user_data.email, issuer_name="CodeBan"
+        )
+
+        return {"success":True, "message":"Usuário registrado com sucesso!", "qr_code_url":otp_uri}
     except Exception as e:
-        return {"message": f"❌ Erro ao conectar no MongoDB: {e}"} 
+        return {"success":False, "message": f"Erro no registro do usuário: {e}"} 
 
-@app.get("/init")
-def setup():
+@app.post("/login",response_model=LoginResponse)
+def login(user_data: UserModel):
     try:
-        usuario = User.objects(email="contato.pabloed@email.com").first()
+        # Verificar se o usuário existe
+        usuario = User.objects(email=user_data.email).first()
         if not usuario:
-            usuario = User(name="Pablo Bispo", email="contato.pabloed@email.com").save()
+             return {"success":False, "message": "E-Usuário não encontrado"}
 
-        projeto = Project.objects(name="codeBan").first()
-        if not projeto:
-            projeto = Project(name="codeBan", description="Um projeto de kanban de projetos", createdBy=usuario).save()
+        # Comparar senha com bcrypt
+        if not bcrypt.checkpw(user_data.senha.encode("utf-8"), usuario.pass_hash.encode("utf-8")):
+           return {"success":False, "message": "Senha incorreta"}
 
-        tarefa = Task(title="Criar banco de dados e conectar com a api", project=projeto, user=usuario).save()
-
-        return {
-            "message": "Setup verificado/criado com sucesso!",
-            "usuario": {"id": str(usuario.id), "name": usuario.name, "email": usuario.email},
-            "projeto": {"id": str(projeto.id), "name": projeto.name, "description": projeto.description},
-            "tarefa": {"id": str(tarefa.id), "title": tarefa.title, "status": tarefa.status},
-        }
+        # Retornar mensagem para validar o código TOTP
+        return {"success":True, "message": "Digite o código do Google Authenticator"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno: {e}")
+        return {"success":False, "message": f"Erro no login: {e}"} 
+
+@app.post("/totp",response_model=TOTPValidationResponse)
+def validate_totp(data: TOTPValidation):
+    try:
+        usuario = User.objects(email=data.email).first()
+        if not usuario:
+            return {"success":False, "message": "Usuário não encontrado"}
+
+        # Validar código TOTP
+        totp = pyotp.TOTP(usuario.totp_secret)
+        if not totp.verify(data.totp_code):
+            return {"success":False, "message": "Código TOTP inválido"}
+
+        # Gerar Token JWT
+        token = jwt.encode({"email": usuario.email}, SECRET_KEY, algorithm="HS256")
+
+        return {"success":True, "message": "Login bem-sucedido!", "token": token}
+    except Exception as e:
+        return {"success":False, "message": f"Erro na validação de totp: {e}"} 

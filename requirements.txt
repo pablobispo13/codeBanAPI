@@ -2,3 +2,8 @@ fastapi
 uvicorn
 mongoengine
 python-dotenv
+pyotp
+qrcode[pil]
+pydantic
+bcrypt
+pyjwt

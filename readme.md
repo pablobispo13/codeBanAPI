@@ -1,6 +1,8 @@
 # 🚀 CodeBanAPI
 
-Este projeto é uma API de um projeto de kanban com **FastAPI** e hospedada na **Vercel**.
+Este projeto é uma API de um projeto de kanban com **FastAPI** e hospedada na **Vercel** utilizando banco de dados hospedado na MongoDB.
+
+Caso tente a importação do projeto para uso próprio é necessário mudar/criar uma collection no MongoDB
 
 ## 📌 Requisitos
 
@@ -38,3 +40,5 @@ A API estará disponível em:
 ```sh
 http://127.0.0.1:8000
 ```
+
+- [Documentação da API](https://apicodeban.vercel.app/docs)
