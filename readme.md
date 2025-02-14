@@ -1,4 +1,4 @@
-# 🚀 ProjectBanAPI
+# 🚀 CodeBanAPI
 
 Este projeto é uma API de um projeto de kanban com **FastAPI** e hospedada na **Vercel**.
 

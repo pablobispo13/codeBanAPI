@@ -11,16 +11,16 @@ load_dotenv()
 
 # Conectar ao MongoDB Atlas
 MONGO_URI = os.getenv("MONGO_URI")
-me.connect(db="projectban",host=MONGO_URI)
+me.connect(db="codeBan",host=MONGO_URI)
 
 # Inicializar FastAPI
 app = FastAPI()
 
 @app.get("/")
 def read_root():
-    me.connect(db="projectban",host=MONGO_URI)
+    me.connect(db="codeBan",host=MONGO_URI)
     try:
-        me.connect(db="projectban",host=MONGO_URI)
+        me.connect(db="codeBan",host=MONGO_URI)
         return {"message": "✅ Conectado ao MongoDB com sucesso!"} 
     except Exception as e:
         return {"message": f"❌ Erro ao conectar no MongoDB: {e}"} 
@@ -32,9 +32,9 @@ def setup():
         if not usuario:
             usuario = User(name="Pablo Bispo", email="contato.pabloed@email.com").save()
 
-        projeto = Project.objects(name="ProjectBan").first()
+        projeto = Project.objects(name="codeBan").first()
         if not projeto:
-            projeto = Project(name="ProjectBan", description="Um projeto de kanban de projetos", createdBy=usuario).save()
+            projeto = Project(name="codeBan", description="Um projeto de kanban de projetos", createdBy=usuario).save()
 
         tarefa = Task(title="Criar banco de dados e conectar com a api", project=projeto, user=usuario).save()
 
