@@ -12,6 +12,7 @@ from pydantic import BaseModel
 import pyotp
 import jwt
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 # Env
 load_dotenv()
@@ -27,11 +28,19 @@ app = FastAPI(
     version="0.4"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Types
 class UserModel(BaseModel):
     name: str
     email: str
-    senha: str
+    password: str
 
 class TOTPValidation(BaseModel):
     email: str
@@ -54,8 +63,8 @@ class TOTPValidationResponse(BaseModel):
     message: str
     token: str = None
     
-def hash_senha(senha: str):
-    return hashlib.sha256(senha.encode()).hexdigest()
+def hash_password(password: str):
+    return hashlib.sha256(password.encode()).hexdigest()
 
 @app.post("/register",response_model=RegisterResponse)
 def register(user_data: UserModel):
@@ -64,9 +73,9 @@ def register(user_data: UserModel):
         if User.objects(email=user_data.email).first():
             return {"success":False, "message": "E-mail já cadastrado"}
 
-        # Hash da senha
+        # Hash da password
         salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(user_data.senha.encode("utf-8"), salt)
+        hashed_password = bcrypt.hashpw(user_data.password.encode("utf-8"), salt)
 
         # Gerar segredo TOTP
         totp_secret = pyotp.random_base32()
@@ -97,9 +106,9 @@ def login(user_data: UserModel):
         if not usuario:
              return {"success":False, "message": "E-Usuário não encontrado"}
 
-        # Comparar senha com bcrypt
-        if not bcrypt.checkpw(user_data.senha.encode("utf-8"), usuario.pass_hash.encode("utf-8")):
-           return {"success":False, "message": "Senha incorreta"}
+        # Comparar password com bcrypt
+        if not bcrypt.checkpw(user_data.password.encode("utf-8"), usuario.pass_hash.encode("utf-8")):
+           return {"success":False, "message": "password incorreta"}
 
         # Retornar mensagem para validar o código TOTP
         return {"success":True, "message": "Digite o código do Google Authenticator"}
