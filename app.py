@@ -124,7 +124,7 @@ def validate_totp(data: TOTPValidation):
 
         # Validar código TOTP
         totp = pyotp.TOTP(usuario.totp_secret)
-        if not totp.verify(data.totp_code):
+        if not totp.verify(str(data.totp_code)):
             return {"success":False, "message": "Código TOTP inválido"}
 
         # Gerar Token JWT
