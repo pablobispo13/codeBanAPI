@@ -16,8 +16,8 @@ Antes de executar o projeto, certifique-se de ter instalado:
 Clone o repositório:
 
 ```sh
-git clone https://github.com/seu-usuario/seu-repositorio.git
-cd seu-repositorio
+git clone https://github.com/pablobispo13/codeBanAPP.git
+cd codeBanAPI
 ```
 
 Crie um ambiente virtual (opcional, mas recomendado):

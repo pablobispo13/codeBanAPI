@@ -8,11 +8,16 @@ from services.auth_service import (
 )
 from pydantic import BaseModel
 import pyotp
+from urllib.parse import urlparse, parse_qs
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-# Modelos de entrada
-class UserModel(BaseModel):
+class UserRegisterModel(BaseModel):
+    name: str
+    email: str
+    password: str
+    
+class LoginModel(BaseModel):
     email: str
     password: str
 
@@ -20,9 +25,8 @@ class TOTPValidation(BaseModel):
     email: str
     totp_code: str
 
-# Rota de Registro
 @router.post("/register")
-def register(user_data: UserModel):
+def register(user_data: UserRegisterModel):
     if User.objects(email=user_data.email).first():
         return {"success": False, "message": "E-mail já cadastrado", "data": None}
 
@@ -33,19 +37,20 @@ def register(user_data: UserModel):
     new_user.save()
 
     otp_uri = pyotp.totp.TOTP(totp_secret).provisioning_uri(name=user_data.email, issuer_name="CodeBan")
+    parsed_uri = urlparse(otp_uri)
+    query_params = parse_qs(parsed_uri.query)
+    secret_value = query_params.get('secret', [None])[0]
+    
+    return {"success": True, "message": "Usuário registrado com sucesso!", "data": {"qr_code_url": otp_uri,"qrcode_url_value":secret_value}}
 
-    return {"success": True, "message": "Usuário registrado com sucesso!", "data": {"qr_code_url": otp_uri}}
-
-# Rota de Login
 @router.post("/login")
-def login(user_data: UserModel):
+def login(user_data: LoginModel):
     user = User.objects(email=user_data.email).first()
     if not user or not verify_password(user_data.password, user.pass_hash):
         return {"success": False, "message": "Usuário ou senha incorretos", "data": None}
 
     return {"success": True, "message": "Digite o código do Google Authenticator", "data": None}
 
-# Rota de Validação de TOTP
 @router.post("/totp")
 def validate_totp(data: TOTPValidation):
     if not validate_totp_code(data.email, data.totp_code):
