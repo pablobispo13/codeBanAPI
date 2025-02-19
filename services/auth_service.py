@@ -7,19 +7,15 @@ from fastapi import HTTPException, status
 from models.user import User
 from datetime import datetime, timedelta
 
-# Carregar variáveis de ambiente
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# Gerar hash da senha
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-# Comparar senha com hash armazenado
 def verify_password(password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
 
-# Gerar token JWT
 def create_jwt_token(email: str) -> str:
     expiration = datetime.utcnow() + timedelta(hours=48)
     payload = {
@@ -29,7 +25,6 @@ def create_jwt_token(email: str) -> str:
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-# Verificar token JWT
 def verify_jwt_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
@@ -39,7 +34,6 @@ def verify_jwt_token(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"success": False, "message": "Token inválido", "data": None})
 
-# Validar código TOTP
 def validate_totp_code(email: str, code: str) -> bool:
     user = User.objects(email=email).first()
     if not user:
