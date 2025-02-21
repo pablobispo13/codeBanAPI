@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import auth, user
+from routes import auth, user, project, board, task
 import mongoengine as me
 import os
 
@@ -22,6 +22,9 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(project.router)
+app.include_router(board.router)
+app.include_router(task.router)
 
 @app.get("/")
 def root():

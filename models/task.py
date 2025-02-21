@@ -1,7 +1,7 @@
 # Imports
 import mongoengine as me
-from .project import Project  # Import Project model
-from .user import User  # Import User model
+from models.project import Project  # Import Project model
+from models.user import User  # Import User model
 import datetime
 
 # Task Model
@@ -10,5 +10,5 @@ class Task(me.Document):
     description = me.StringField()
     status = me.StringField(choices=["Pendente", "Em Progresso", "Concluído"], default="Pendente")
     project = me.ReferenceField(Project, required=True)
-    user = me.ReferenceField(User, required=False)
+    createdBy = me.ReferenceField(User, required=False)
     createdAt = me.DateTimeField(default=lambda: datetime.datetime.utcnow())

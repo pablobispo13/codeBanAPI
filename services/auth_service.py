@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, status
 from models.user import User
 from datetime import datetime, timedelta
+from fastapi.security import  HTTPAuthorizationCredentials
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -41,3 +42,11 @@ def validate_totp_code(email: str, code: str) -> bool:
 
     totp = pyotp.TOTP(user.totp_secret)
     return totp.verify(code)
+
+def get_authenticated_user(credentials: HTTPAuthorizationCredentials):
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    user = User.objects(email=payload["email"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    return user
